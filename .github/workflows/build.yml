@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest  # 使用 Apple Silicon 运行器
+    runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -16,15 +16,31 @@ jobs:
 
       - name: Configure and Build
         run: |
+          # 1. 获取依赖项的真实路径
+          export OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)
+          export BOOST_ROOT=$(brew --prefix boost)
+          
+          # 2. 核心修复：修改 CMakeLists.txt
+          # 原因是 Boost 1.90 不再提供 boost_system 物理库，
+          # 我们需要把 "system" 从 find_package 的 COMPONENTS 中移除
+          # 同时保留 program_options (它是必须的物理库)
+          sed -i '' 's/COMPONENTS system/COMPONENTS/g' CMakeLists.txt
+          sed -i '' 's/system program_options/program_options/g' CMakeLists.txt
+
           mkdir build && cd build
-          # 必须告诉 CMake OpenSSL 的路径，因为 brew 安装的 openssl 是 keg-only 的
+          
+          # 3. 运行 CMake
+          # 使用 Boost_NO_BOOST_CMAKE=ON 强制 CMake 使用内置搜索逻辑，避开损坏的 BoostConfig.cmake
           cmake .. \
             -DCMAKE_PREFIX_PATH="$BOOST_ROOT;$OPENSSL_ROOT_DIR" \
             -DBOOST_ROOT="$BOOST_ROOT" \
             -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR" \
+            -DBoost_NO_BOOST_CMAKE=ON \
             -DENABLE_MYSQL=OFF \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_POLICY_DEFAULT_CMP0167=OLD
+            
+          # 4. 编译
           make -j$(sysctl -n hw.ncpu)
 
       - name: Upload Artifact
