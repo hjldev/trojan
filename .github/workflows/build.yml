@@ -19,9 +19,9 @@ jobs:
           mkdir build && cd build
           # 必须告诉 CMake OpenSSL 的路径，因为 brew 安装的 openssl 是 keg-only 的
           cmake .. \
-            -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3) \
-            -DBOOST_ROOT="$BOOST_PREFIX" \
-            -DOPENSSL_ROOT_DIR="$OPENSSL_PREFIX" \
+            -DCMAKE_PREFIX_PATH="$BOOST_ROOT;$OPENSSL_ROOT_DIR" \
+            -DBOOST_ROOT="$BOOST_ROOT" \
+            -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR" \
             -DENABLE_MYSQL=OFF \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_POLICY_DEFAULT_CMP0167=OLD
